@@ -1,22 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 import 'url-search-params-polyfill';
 import type { BootstrapConfig } from '../types';
+import { bootStore } from './bootStore';
 
-export const bootstrapQueryRequest = (queryClient: QueryClient, options?: BootstrapConfig): void => {
-  // make query config doesn't expire
-
+export const bootstrapQueryRequest = async (queryClient: QueryClient, options: BootstrapConfig): Promise<void> => {
   // set default query config
-  const defaultMeta = {
-    headers: {
-      Authorization: ``,
-    },
-    options,
-  };
+  await queryClient.resumePausedMutations();
 
-  queryClient.setDefaultOptions({
-    queries: {
-      meta: defaultMeta,
-    },
-    mutations: { meta: defaultMeta },
-  });
+  bootStore.setState(() => options);
 };

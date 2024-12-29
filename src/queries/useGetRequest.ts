@@ -1,7 +1,9 @@
 import { QueryKey, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { startTransition, useEffect, useMemo, useState } from 'react';
-import { useEnvironmentVariables, useQueryConfig } from '../config';
+import { useEnvironmentVariables } from '../config';
 
+import { useStore } from '@tanstack/react-store';
+import { bootStore } from '../config/bootStore';
 import { IRequestError, IRequestSuccess, makeRequest } from '../request';
 import { useHeaderStore, usePauseFutureRequests } from '../stores';
 import { DefaultRequestOptions, IPagination, TanstackQueryOption } from './queries.interface';
@@ -24,9 +26,10 @@ export const useGetRequest = <TResponse extends Record<string, any>>({
   const [page, setPage] = useState<number>(1);
 
   const { API_URL, TIMEOUT } = useEnvironmentVariables();
+  const { middleware } = useStore(bootStore);
+
   const globalHeaders = useHeaderStore((state) => state.headers);
 
-  const { options: queryConfigOptions } = useQueryConfig();
   const [requestPayload, setRequestPayload] = useState<Record<any, any>>();
 
   const isFutureQueriesPaused = usePauseFutureRequests((state) => state.isFutureQueriesPaused);
@@ -54,9 +57,9 @@ export const useGetRequest = <TResponse extends Record<string, any>>({
     };
 
     let getResponse: IRequestError | IRequestSuccess<TResponse>;
-    if (queryConfigOptions?.middleware) {
+    if (middleware) {
       // perform global middleware
-      getResponse = await queryConfigOptions.middleware(
+      getResponse = await middleware(
         async (middlewareOptions) =>
           await makeRequest<TResponse>(
             middlewareOptions ? { ...requestOptions, ...middlewareOptions } : requestOptions

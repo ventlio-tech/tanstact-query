@@ -1,7 +1,9 @@
 import type { MutateOptions } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-store';
 import { useEffect, useState } from 'react';
-import { useEnvironmentVariables, useQueryConfig } from '../config';
+import { useEnvironmentVariables } from '../config';
+import { bootStore } from '../config/bootStore';
 import { scrollToTop } from '../helpers';
 import { useUploadProgress } from '../hooks';
 import { HttpMethod, makeRequest } from '../request';
@@ -17,8 +19,7 @@ export const usePatchRequest = <TResponse>({ path, baseUrl, headers }: { path: s
   const [requestPayload, setRequestPayload] = useState<Record<any, any>>();
 
   const isFutureMutationsPaused = usePauseFutureRequests((state) => state.isFutureMutationsPaused);
-
-  const config = useQueryConfig();
+  const { middleware, context } = useStore(bootStore);
 
   const sendRequest = async (res: (value: any) => void, rej: (reason?: any) => void, data: any) => {
     // get request headers
@@ -34,9 +35,9 @@ export const usePatchRequest = <TResponse>({ path, baseUrl, headers }: { path: s
     };
 
     let patchResponse: IRequestError | IRequestSuccess<TResponse>;
-    if (config.options?.middleware) {
+    if (middleware) {
       // perform global middleware
-      const middlewareResponse = await config.options.middleware(
+      const middlewareResponse = await middleware(
         async (options) => await makeRequest<TResponse>(options ? { ...requestOptions, ...options } : requestOptions),
         {
           path,
@@ -51,13 +52,13 @@ export const usePatchRequest = <TResponse>({ path, baseUrl, headers }: { path: s
     }
     if (patchResponse.status) {
       // scroll to top after success
-      if (config.options?.context !== 'app') {
+      if (context !== 'app') {
         scrollToTop();
       }
       res(patchResponse as IRequestSuccess<TResponse>);
     } else {
       // scroll to top after error
-      if (config.options?.context !== 'app') {
+      if (context !== 'app') {
         scrollToTop();
       }
       rej(patchResponse);
