@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-store';
 import result from 'lodash.result';
 import { default as lodashSet } from 'lodash.set';
-import { useQueryConfig } from '../config';
+import { bootStore } from '../config/bootStore';
 import type { QueryModelAddPosition, QueryModelBuilder } from './model.interface';
 import { useKeyTrackerModel } from './useKeyTrackerModel';
 
@@ -9,7 +10,7 @@ export const useQueryModel = <T>(keyTracker: string): QueryModelBuilder<T> => {
   const queryClient = useQueryClient();
   const { getQueryKey } = useKeyTrackerModel(keyTracker);
   const queryKey = getQueryKey() as any[];
-  const config = useQueryConfig();
+  const config = useStore(bootStore);
 
   const add = (data: T, position?: QueryModelAddPosition, path?: string): T | undefined => {
     let records = (findAll(path) ?? []) as T[];
@@ -79,8 +80,7 @@ export const useQueryModel = <T>(keyTracker: string): QueryModelBuilder<T> => {
   };
 
   const getModelConfig = () => {
-    const { options } = config;
-    const { modelConfig } = options ?? {};
+    const { modelConfig } = config;
 
     return modelConfig;
   };

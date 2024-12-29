@@ -1,6 +1,5 @@
-import type { QueryKey } from '@tanstack/react-query';
-import type { RawAxiosRequestHeaders } from 'axios';
-import type { IMakeRequest, IRequestError, IRequestSuccess } from '../request';
+import type { AxiosProgressEvent, RawAxiosRequestHeaders } from 'axios';
+import type { AppFileConfig, HttpMethod, IMakeRequest, IRequestError, IRequestSuccess } from '../request';
 
 export interface BootstrapConfig {
   environments?: {
@@ -9,12 +8,22 @@ export interface BootstrapConfig {
   };
   context?: ContextType;
   modelConfig?: BootstrapModelConfig;
-  mutationMiddleware?: (mutateRequestConfig?: IMakeRequest & { mutationKey: QueryKey }) => Promise<boolean>;
-  queryMiddleware?: (queryRequestConfig?: IMakeRequest & { queryKey: QueryKey }) => Promise<boolean>;
   middleware?: <T = any>(
-    next: () => Promise<IRequestSuccess<T> | IRequestError>,
+    next: (options?: Partial<NextOptions>) => Promise<IRequestSuccess<T> | IRequestError>,
     configs?: { baseUrl: string; path: string; body?: Record<string, any> }
-  ) => Promise<false | IRequestSuccess<T>>;
+  ) => Promise<IRequestError | IRequestSuccess<T>>;
+}
+
+export interface NextOptions extends Partial<IMakeRequest> {
+  baseURL: string;
+  timeout: number;
+  path: string;
+  body: any;
+  method: HttpMethod;
+  isFormData: boolean;
+  headers: RawAxiosRequestHeaders;
+  appFileConfig: AppFileConfig;
+  onUploadProgress: (progressEvent: AxiosProgressEvent) => void;
 }
 
 export interface BootstrapModelConfig {

@@ -1,11 +1,12 @@
-import { useQueryConfig } from './useQueryConfig';
+import { useStore } from '@tanstack/react-store';
+import { bootStore } from './bootStore';
 
 export const useReactNativeEnv = () => {
-  const config = useQueryConfig();
+  const { environments, context } = useStore(bootStore);
 
-  const appUrl: string | undefined = config.options?.environments?.appBaseUrl;
-  const appTimeout: number | undefined = config.options?.environments?.appTimeout;
-  const isApp = config.options?.context === 'app';
+  const appUrl: string | undefined = environments?.appBaseUrl;
+  const appTimeout: number | undefined = environments?.appTimeout;
+  const isApp = context === 'app';
 
   return { appUrl, appTimeout, isApp };
 };

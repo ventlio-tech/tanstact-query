@@ -1,7 +1,9 @@
 import type { MutateOptions } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-store';
 import { useEffect, useState } from 'react';
-import { useEnvironmentVariables, useQueryConfig } from '../config';
+import { useEnvironmentVariables } from '../config';
+import { bootStore } from '../config/bootStore';
 import { scrollToTop } from '../helpers';
 import { useUploadProgress } from '../hooks';
 import { HttpMethod, makeRequest } from '../request';
@@ -17,8 +19,7 @@ export const usePatchRequest = <TResponse>({ path, baseUrl, headers }: { path: s
   const [requestPayload, setRequestPayload] = useState<Record<any, any>>();
 
   const isFutureMutationsPaused = usePauseFutureRequests((state) => state.isFutureMutationsPaused);
-
-  const config = useQueryConfig();
+  const { middleware, context } = useStore(bootStore);
 
   const sendRequest = async (res: (value: any) => void, rej: (reason?: any) => void, data: any) => {
     // get request headers
@@ -33,52 +34,34 @@ export const usePatchRequest = <TResponse>({ path, baseUrl, headers }: { path: s
       onUploadProgress,
     };
 
-    let shouldContinue = true;
-
-    if (config.options?.mutationMiddleware) {
-      shouldContinue = await config.options.mutationMiddleware({
-        mutationKey: [path, { type: 'mutation' }],
-        ...requestOptions,
-      });
-    }
-
-    if (shouldContinue) {
-      let patchResponse: IRequestError | IRequestSuccess<TResponse>;
-      if (config.options?.middleware) {
-        // perform global middleware
-        const middlewareResponse = await config.options.middleware(
-          async () => await makeRequest<TResponse>(requestOptions),
-          {
-            path,
-            baseUrl: baseUrl ?? API_URL,
-            body: data,
-          }
-        );
-
-        if (!middlewareResponse) {
-          rej();
-          return;
+    let patchResponse: IRequestError | IRequestSuccess<TResponse>;
+    if (middleware) {
+      // perform global middleware
+      const middlewareResponse = await middleware(
+        async (options) => await makeRequest<TResponse>(options ? { ...requestOptions, ...options } : requestOptions),
+        {
+          path,
+          baseUrl: baseUrl ?? API_URL,
+          body: data,
         }
+      );
 
-        patchResponse = middlewareResponse;
-      } else {
-        patchResponse = await makeRequest<TResponse>(requestOptions);
-      }
-      if (patchResponse.status) {
-        // scroll to top after success
-        if (config.options?.context !== 'app') {
-          scrollToTop();
-        }
-        res(patchResponse as IRequestSuccess<TResponse>);
-      } else {
-        // scroll to top after error
-        if (config.options?.context !== 'app') {
-          scrollToTop();
-        }
-        rej(patchResponse);
-      }
+      patchResponse = middlewareResponse;
     } else {
-      rej(null);
+      patchResponse = await makeRequest<TResponse>(requestOptions);
+    }
+    if (patchResponse.status) {
+      // scroll to top after success
+      if (context !== 'app') {
+        scrollToTop();
+      }
+      res(patchResponse as IRequestSuccess<TResponse>);
+    } else {
+      // scroll to top after error
+      if (context !== 'app') {
+        scrollToTop();
+      }
+      rej(patchResponse);
     }
   };
 
